@@ -63,25 +63,12 @@ class DfpUser extends AdsUser {
 
   /**
    * The DfpUser constructor.
-   * <p>The DfpUser class can be configured in one of two ways:
+   * <p>The DfpUser class can be configured in one way:
    * <ol>
-   * <li>Using an authentication INI file</li>
-   * <li>Using supplied credentials</li>
+   * <li>Using an array with authentication info</li>
    * </ol></p>
-   * <p>If an authentication INI file is provided and successfully loaded, those
-   * values will be used unless a corresponding parameter overwrites it.
-   * If the authentication INI file is not provided (e.g. it is <var>NULL</var>)
-   * the class will attempt to load the default authentication file at the path
-   * of "../auth.ini" relative to this file's directory. Any corresponding
-   * parameter, which is not <var>NULL</var> will however, overwrite any
-   * parameter loaded from the default INI.</p>
-   * <p>Likewise, if a custom settings INI file is not provided, the default
-   * settings INI file will be loaded from the path of "../settings.ini"
-   * relative to this file's directory.</p>
-   * @param string $authenticationIniPath the absolute path to the
-   *     authentication INI or relative to the current directory (cwd). If
-   *     <var>NULL</var>, the default authentication INI file will attempt to be
-   *     loaded
+   * <p></p>
+   * @param array $oauth2Info the OAuth 2.0 information to use for requests
    * @param string $applicationName the application name (required header). Will
    *     be prepended with the library name and version. Will also overwrite the
    *     applicationName entry in any INI file
@@ -89,58 +76,40 @@ class DfpUser extends AdsUser {
    *     (optional header). Can be left <var>NULL</var> if the user only belongs
    *     to one network. Will overwrite the networkCode entry in any INI
    *     file
-   * @param string $settingsIniPath the path to the settings INI file. If
-   *     <var>NULL</var>, the default settings INI file will be loaded
-   * @param array $oauth2Info the OAuth 2.0 information to use for requests
    */
-  public function __construct($authenticationIniPath = NULL,
-      $applicationName = NULL, $networkCode = NULL, $settingsIniPath = NULL,
-      $oauth2Info = NULL) {
-    parent::__construct();
+    public function __construct($oauth2Info = NULL, $applicationName = NULL, $networkCode = NULL) {
+        parent::__construct();
 
 
-    $buildIniDfp = parse_ini_file(dirname(__FILE__) . '/build.ini',
-        false);
-    $buildIniCommon = parse_ini_file(dirname(__FILE__) .
-        '/../../Common/Lib/build.ini', false);
-    $this->libName = $buildIniDfp['LIB_NAME'];
-    $this->libVersion = $buildIniCommon['LIB_VERSION'];
+        $buildIniDfp = parse_ini_file(dirname(__FILE__) . '/build.ini',
+            false);
+        $buildIniCommon = parse_ini_file(dirname(__FILE__) .
+            '/../../Common/Lib/build.ini', false);
+        $this->libName = $buildIniDfp['LIB_NAME'];
+        $this->libVersion = $buildIniCommon['LIB_VERSION'];
 
-    $apiProps = ApiPropertiesUtils::ParseApiPropertiesFile(dirname(__FILE__) .
-        '/api.properties');
-    $versions = explode(',', $apiProps['api.versions']);
-    $defaultVersion = $versions[count($versions) - 1];
-    $defaultServer = $apiProps['api.server'];
+        $apiProps = ApiPropertiesUtils::ParseApiPropertiesFile(dirname(__FILE__) .
+            '/api.properties');
+        $versions = explode(',', $apiProps['api.versions']);
+        $defaultVersion = $versions[count($versions) - 1];
+        $defaultServer = $apiProps['api.server'];
 
-    if (isset($authenticationIniPath)) {
-      $authenticationIni =
-          parse_ini_file(realpath($authenticationIniPath), TRUE);
-    } else {
-      $authenticationIni =
-          parse_ini_file(dirname(__FILE__) . '/../auth.ini', TRUE);
+        $this->SetOAuth2Info($oauth2Info);
+        $this->SetApplicationName($applicationName);
+        $this->SetClientLibraryUserAgent($applicationName);
+        $this->SetNetworkCode($networkCode);
+
+        if (!isset($settingsIniPath)) {
+            $settingsIniPath = dirname(__FILE__) . '/../settings.ini';
+        }
+
+        $this->loadSettings($settingsIniPath,
+            $defaultVersion,
+            $defaultServer,
+            getcwd(), dirname(__FILE__));
     }
 
-    $applicationName = $this->GetAuthVarValue($applicationName,
-        self::USER_AGENT_HEADER_NAME, $authenticationIni);
-    $networkCode = $this->GetAuthVarValue($networkCode, 'networkCode',
-        $authenticationIni);
-    $oauth2Info = $this->GetAuthVarValue($oauth2Info, 'OAUTH2',
-        $authenticationIni);
 
-    $this->SetOAuth2Info($oauth2Info);
-    $this->SetApplicationName($applicationName);
-    $this->SetClientLibraryUserAgent($applicationName);
-    $this->SetNetworkCode($networkCode);
-
-    if (!isset($settingsIniPath)) {
-      $settingsIniPath = dirname(__FILE__) . '/../settings.ini';
-    }
-
-    $this->loadSettings($settingsIniPath,
-        $defaultVersion,
-        $defaultServer,
-        getcwd(), dirname(__FILE__));
-  }
 
   /**
    * Gets the service by its service name.
