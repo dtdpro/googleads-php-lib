@@ -30,7 +30,7 @@ $oauth2['refresh_token'] = REFRESH TOKEN;
 
 2\. Run an example.
 
-Create DEFUser object
+Create DFPUser object
 
 $user = new DfpUser($oauth2,$appname,$networkcode);
 
